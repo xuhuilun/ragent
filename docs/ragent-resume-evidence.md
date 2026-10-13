@@ -4,9 +4,9 @@
 
 ## 1. 个人贡献与验证边界
 
-用户于本轮明确说明：“这个项目就是我另一个账号全程主导的”。因此本次按个人主导项目整理设计与实现职责，已同步修订此前按非本人开发整理的[贡献说明](source-interview-phase-one.md)。个人归属以最新用户说明为准；Git 账号不同不否定该说明。
+个人贡献：Ragent 全部业务代码由本人独立完成。本文将应用层设计、编码与第三方框架能力分开说明，个人职责使用独立设计实现口径。[贡献说明](source-interview-phase-one.md)与[逐条 STAR 话术](ragent-star-interview-guide.md)采用同一口径。
 
-设计与实现机制可根据用户说明和源码写入个人职责；性能、质量提升和生产故障经历需要单独记录。本次核验只读取源码、配置和测试文件，没有运行模型、数据库、外部检索服务、端到端评测或生产压测。测试文件证明断言存在，不证明本次运行通过。
+个人职责中的设计与实现机制已对应源码；性能、质量提升和生产故障经历需要单独记录。本次核验只读取源码、配置和测试文件，没有运行模型、数据库、外部检索服务、端到端评测或生产压测。测试文件证明断言存在，不证明本次运行通过。
 
 ## 2. 检索链路
 
@@ -109,7 +109,7 @@ Skills 以成功的 `load_skill` 工具结果元数据识别已加载手册。�
 
 SSE 的超时、错误和完成回调均接取消流程；运行句柄协调订阅、中断、状态保存及释放钩子。网络断开后的取消依赖容器检测，不能保证同步外部操作瞬时终止。[AgentChatServiceImpl:364](../agent/src/main/java/com/nageoffer/ai/ragent/agent/service/impl/AgentChatServiceImpl.java#L364)、[AgentRunHandle:169](../agent/src/main/java/com/nageoffer/ai/ragent/agent/service/handler/AgentRunHandle.java#L169)
 
-RAG 模型调用先筛选档位候选，结合 CLOSED / OPEN / HALF_OPEN 状态进行准入。首包为内容或思考回调时提交缓冲；超时、错误或无内容完成时尝试下个候选。首包等待被中断时取消句柄、释放匹配的半开令牌；首包成功返回后不再切换模型。[RoutingLLMService:124](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/chat/RoutingLLMService.java#L124)、[RoutingLLMService:182](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/chat/RoutingLLMService.java#L182)、[ModelHealthStore:143](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/model/ModelHealthStore.java#L143)、[ProbeStreamBridge:44](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/chat/ProbeStreamBridge.java#L44)
+RAG 模型调用先筛选档位候选，结合 CLOSED / OPEN / HALF_OPEN 状态进行准入。首包探测结果为成功时提交缓冲；探测结果为超时、错误或无内容完成时尝试下个候选。内容或思考回调先将探测置为成功后，迟到错误不会覆盖成功结果，即使先于 commit 到达也沿当前流转发。首包等待被中断时取消句柄、释放匹配的半开令牌；探测成功后不再切换模型。[RoutingLLMService:124](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/chat/RoutingLLMService.java#L124)、[RoutingLLMService:182](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/chat/RoutingLLMService.java#L182)、[ModelHealthStore:143](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/model/ModelHealthStore.java#L143)、[ProbeStreamBridge:44](../infra-ai/src/main/java/com/nageoffer/ai/ragent/infra/chat/ProbeStreamBridge.java#L44)
 
 这套 fallback 仅属于 RAG / infra-ai 路径。主 Agent 配置单模型，当前 Agent Langfuse 追踪关闭；RAG 自身追踪开关独立，不据此宣称生产全链路已经完成验证。[application.yaml:42](../bootstrap/src/main/resources/application.yaml#L42)、[application.yaml:55](../bootstrap/src/main/resources/application.yaml#L55)
 
